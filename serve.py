@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!C:/Python34/python.exe -u
 
 from sys import exit
 from config.config import config

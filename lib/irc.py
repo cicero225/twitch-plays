@@ -37,9 +37,9 @@ class Irc:
 
         sock.settimeout(None)
 
-        sock.send('USER %s\r\n' % username)
-        sock.send('PASS %s\r\n' % password)
-        sock.send('NICK %s\r\n' % username)
+        sock.send(bytes('USER %s\r\n' % username,'UTF-8'))
+        sock.send(bytes('PASS %s\r\n' % password,'UTF-8'))
+        sock.send(bytes('NICK %s\r\n' % username,'UTF-8'))
 
         if not self.check_login_status(self.recv()):
             pp('Invalid login.', 'error')
@@ -47,12 +47,12 @@ class Irc:
         else:
             pp('Login successful!')
 
-        sock.send('JOIN #%s\r\n' % username)
+        sock.send(bytes('JOIN #%s\r\n' % username,'utf-8'))
         pp('Joined #%s' % username)
 
     def ping(self, data):
-        if data.startswith('PING'):
-            self.sock.send(data.replace('PING', 'PONG'))
+        if data.startswith(bytes('PING','utf-8')):
+            self.sock.send(bytes(data.decode('utf8').replace('PING', 'PONG'),'utf-8'))
 
     def recv(self, amount=1024):
         return self.sock.recv(amount)
@@ -67,17 +67,17 @@ class Irc:
         self.ping(data)
 
         if self.check_has_message(data):
-            return [self.parse_message(line) for line in filter(None, data.split('\r\n'))]
+            return [self.parse_message(line) for line in filter(None, data.decode("utf-8").split('\r\n'))]
 
     def check_login_status(self, data):
-        if not re.match(r'^:(testserver\.local|tmi\.twitch\.tv) NOTICE \* :Login unsuccessful\r\n$', data): return True
+        if not re.match(r'^:(testserver\.local|tmi\.twitch\.tv) NOTICE \* :Login unsuccessful\r\n$', data.decode("utf-8")): return True
 
     def check_has_message(self, data):
-        return re.match(r'^:[a-zA-Z0-9_]+\![a-zA-Z0-9_]+@[a-zA-Z0-9_]+(\.tmi\.twitch\.tv|\.testserver\.local) PRIVMSG #[a-zA-Z0-9_]+ :.+$', data)
+        return re.match(r'^:[a-zA-Z0-9_]+\![a-zA-Z0-9_]+@[a-zA-Z0-9_]+(\.tmi\.twitch\.tv|\.testserver\.local) PRIVMSG #[a-zA-Z0-9_]+ :.+$', data.decode("utf-8"))
 
     def parse_message(self, data): 
         return {
             'channel': re.findall(r'^:.+\![a-zA-Z0-9_]+@[a-zA-Z0-9_]+.+ PRIVMSG (.*?) :', data)[0],
             'username': re.findall(r'^:([a-zA-Z0-9_]+)\!', data)[0],
-            'message': re.findall(r'PRIVMSG #[a-zA-Z0-9_]+ :(.+)', data)[0].decode('utf8')
+            'message': re.findall(r'PRIVMSG #[a-zA-Z0-9_]+ :(.+)', data)[0]
         }
