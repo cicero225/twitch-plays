@@ -12,6 +12,15 @@ class Game:
     #height=GetSystemMetrics(1)
     width=1920
     height=1080
+    macros={    #This aliases some buttons into other commands
+        'back':'L100,1060',
+        'research':'L800,30',
+        'engineering':'L1000,30',
+        'barracks':'L950,30',
+        'hangar':'L1100,30',
+        'enginback':'L600,900',
+        'launch':'L1800,1050',
+    }
     keymap = {
        #'backspace':0x08,
        'tab':0x09,
@@ -89,6 +98,8 @@ class Game:
             return False
         if button in self.keymap.keys():
             return True
+        elif button in self.macros.keys():    
+            return True
         elif button.lower()==('mup') or button.lower()==('mdown') or button.lower()==('mleft') or button.lower()==('mright') or button.lower()=='wait':
             return True
         elif button.lower().startswith('r') or button.lower().startswith('l') or button.lower().startswith('m'):
@@ -126,6 +137,8 @@ class Game:
     
     def push_button(self, button):
         #print(button)
+        if button in self.macros.keys(): #convert macro to something else
+            button=self.macros[button]
         if button in self.keymap.keys():
             win32api.keybd_event(self.button_to_key(button), 0, 0, 0)
             time.sleep(.15)

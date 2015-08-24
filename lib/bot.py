@@ -56,7 +56,7 @@ class Bot:
             if votes:
                 print ('Top Votes:\n')
                 for y in votes[0:min(len(votes),self.voteLength)]: #show at most 5 votes
-                    print (y[0]+"      "+str(y[1]))
+                    print (str(y[1])+" "+y[0])
                 print ('\n')
             for y in self.message_buffer:
                 print (y)
