@@ -12,6 +12,7 @@ class Game:
     #height=GetSystemMetrics(1)
     width=1920
     height=1080
+    endBlockTime=300 #For throttling end turn presses (time between allowed presses)
     macros={    #This aliases some buttons into other commands
         'back':'L100,1060',
         'research':'L800,30',
@@ -90,6 +91,9 @@ class Game:
        #'previous':0xA0,
        'shift':0xA0,
     }
+    
+    def __init__(self): #Well... this is an awkward one-liner
+        self.prevEndTime=time.time() #For throttling end turn presses
         
     def get_valid_buttons(self):
         return [button for button in self.keymap.keys()]
@@ -104,12 +108,19 @@ class Game:
         elif button.lower()==('mup') or button.lower()==('mdown') or button.lower()==('mleft') or button.lower()==('mright') or button.lower()=='wait':
             return True
         elif button.lower().startswith('r') or button.lower().startswith('l') or button.lower().startswith('m'):
-            if button[0].lower()=='c' and not button.lower().startswith('m'):
+            if len(button)<2: #Actually, this particular scenario is ruled out by l/m/r being in the key map for typing letters, so this is just being fastidious
+                return False
+            if button[1].lower()=='c' and not button.lower().startswith('m'):
                 return True
             words = button[1:].split(",")
             try:  #So very pythonic
                 x=int(words[0])
                 y=int(words[1])
+                #Special coordinate throttle for end turn    #This can be made more generic if necessary
+                if x>90 and x<160 and y>775 and y<850:
+                    if time.time()-self.prevEndTime<self.endBlockTime:
+                        return False
+                    self.prevEndTime=time.time()
             except:
                 return False
             if (x>self.width) or (x<1) or (y<1) or (y>self.height):
@@ -176,18 +187,14 @@ class Game:
             y=int(words[1])
         except:
             return
-        xjitter=x-1
-        if x==1: #This tiny correction enables 1,1 to work. It's honestly fine even without it, but I imagine some people will intuitively try to R1,1 to exit a menu, for example
-            xjitter=x+1 
-        if (x>self.width) or (x<1) or (y<1) or (y>self.height):
-            return
-        #XCOM requires seeing the mouse move slightly before it will actually show the unit movement cursor, grenade curson, etc.
-        win32api.mouse_event(win32con.MOUSEEVENTF_MOVE | win32con.MOUSEEVENTF_ABSOLUTE, int(xjitter/self.width*65535.0), int(y/self.height*65535.0))
-        win32api.mouse_event(win32con.MOUSEEVENTF_MOVE | win32con.MOUSEEVENTF_ABSOLUTE, int(x/self.width*65535.0), int(y/self.height*65535.0))
+        #if (x>self.width) or (x<1) or (y<1) or (y>self.height): #In theory this has been checked by the input checker before this...
+            #return
+        self.mousetocoor(x,y)
         time.sleep(.15)
         win32api.mouse_event(win32con.MOUSEEVENTF_RIGHTDOWN,x,y,0,0)
         time.sleep(.15)
         win32api.mouse_event(win32con.MOUSEEVENTF_RIGHTUP,x,y,0,0)
+        self.mouseoffedge(x,y)
         
     def clickM(self,button):
         words = button.split(",")
@@ -196,19 +203,11 @@ class Game:
             y=int(words[1])
         except:
             return
-        xjitter=x-1
-        if x==1: #This tiny correction enables 1,1 to work. It's honestly fine even without it, but I imagine some people will intuitively try to R1,1 to exit a menu, for example
-            xjitter=x+1 
-        if (x>self.width) or (x<1) or (y<1) or (y>self.height):
-            return
-        # x=x-2464; #correction for monitor location; also coordinates hard-coded because I can't be arsed to try harder than that
-        win32api.mouse_event(win32con.MOUSEEVENTF_MOVE | win32con.MOUSEEVENTF_ABSOLUTE, int(xjitter/self.width*65535.0), int(y/self.height*65535.0))
-        win32api.mouse_event(win32con.MOUSEEVENTF_MOVE | win32con.MOUSEEVENTF_ABSOLUTE, int(x/self.width*65535.0), int(y/self.height*65535.0))
+        #if (x>self.width) or (x<1) or (y<1) or (y>self.height): #In theory this has been checked by the input checker before this...
+            #return
+        self.mousetocoor(x,y)
         #win32api.SetCursorPos((x,y))
-        if (x>self.width-100) or (x<100) or (y<100) or (y>self.height-1): #This prevents mouse from getting stuck at the edge of the screen; there are other ways to move the camera if necessary
-            time.sleep(1)
-            win32api.mouse_event(win32con.MOUSEEVENTF_MOVE | win32con.MOUSEEVENTF_ABSOLUTE, int((0.5-1/self.width)*65535.0), 32767) #middle of screen
-            win32api.mouse_event(win32con.MOUSEEVENTF_MOVE | win32con.MOUSEEVENTF_ABSOLUTE, 32767, 32767)
+        self.mouseoffedge(x,y)
         
     def clickL(self,button):
         if button[0].lower()=='c':
@@ -223,18 +222,14 @@ class Game:
             y=int(words[1])
         except:
             return
-        xjitter=x-1
-        if x==1: #This tiny correction enables 1,1 to work. It's honestly fine even without it, but I imagine some people will intuitively try to R1,1 to exit a menu, for example
-            xjitter=x+1 
-        if (x>self.width) or (x<1) or (y<1) or (y>self.height):
-            return
-        #XCOM requires seeing the mouse move slightly before it will actually show the unit movement cursor, grenade curson, etc.
-        win32api.mouse_event(win32con.MOUSEEVENTF_MOVE | win32con.MOUSEEVENTF_ABSOLUTE, int(xjitter/self.width*65535.0), int(y/self.height*65535.0))
-        win32api.mouse_event(win32con.MOUSEEVENTF_MOVE | win32con.MOUSEEVENTF_ABSOLUTE, int(x/self.width*65535.0), int(y/self.height*65535.0))
+        #if (x>self.width) or (x<1) or (y<1) or (y>self.height): #In theory this has been checked by the input checker before this...
+            #return
+        self.mousetocoor(x,y)
         time.sleep(.15)
         win32api.mouse_event(win32con.MOUSEEVENTF_LEFTDOWN,x,y,0,0)
         time.sleep(.15)
         win32api.mouse_event(win32con.MOUSEEVENTF_LEFTUP,x,y,0,0)
+        self.mouseoffedge(x,y)
         
     def clickW(self,button):
         x, y=win32api.GetCursorPos()
@@ -245,28 +240,37 @@ class Game:
         
     def mleft(self):
         x, y=win32api.GetCursorPos()
-        nx = int(x*65535/self.width)
-        ny = int(y*65535/self.height)
-        win32api.mouse_event(win32con.MOUSEEVENTF_ABSOLUTE|win32con.MOUSEEVENTF_MOVE,nx-3267,ny)
-        win32api.mouse_event(win32con.MOUSEEVENTF_ABSOLUTE|win32con.MOUSEEVENTF_MOVE,nx-3277,ny)
-        
+        xmove=max(1,x-100)
+        self.mousetocoor(xmove,y)
+        self.mouseoffedge(xmove,y)
+ 
     def mup(self):
         x, y=win32api.GetCursorPos()
-        nx = int(x*65535/self.width)
-        ny = int(y*65535/self.height)
-        win32api.mouse_event(win32con.MOUSEEVENTF_ABSOLUTE|win32con.MOUSEEVENTF_MOVE,nx,ny-3267)
-        win32api.mouse_event(win32con.MOUSEEVENTF_ABSOLUTE|win32con.MOUSEEVENTF_MOVE,nx,ny-3277)
+        ymove=max(1,y-100)
+        self.mousetocoor(x,ymove)
+        self.mouseoffedge(x,ymove)
         
     def mdown(self):
         x, y=win32api.GetCursorPos()
-        nx = int(x*65535/self.width)
-        ny = int(y*65535/self.height)
-        win32api.mouse_event(win32con.MOUSEEVENTF_ABSOLUTE|win32con.MOUSEEVENTF_MOVE,nx,ny+3267)
-        win32api.mouse_event(win32con.MOUSEEVENTF_ABSOLUTE|win32con.MOUSEEVENTF_MOVE,nx,ny+3277)
+        ymove=min(self.height,y+100)
+        self.mousetocoor(x,ymove)
+        self.mouseoffedge(x,ymove)
 
     def mright(self):
         x, y=win32api.GetCursorPos()
-        nx = int(x*65535/self.width)
-        ny = int(y*65535/self.height)
-        win32api.mouse_event(win32con.MOUSEEVENTF_ABSOLUTE|win32con.MOUSEEVENTF_MOVE,nx+3267,ny)
-        win32api.mouse_event(win32con.MOUSEEVENTF_ABSOLUTE|win32con.MOUSEEVENTF_MOVE,nx+3277,ny)
+        xmove=min(self.width,x+100)
+        self.mousetocoor(xmove,y)
+        self.mouseoffedge(xmove,y)
+        
+    def mouseoffedge(self,x,y):
+        if (x>self.width-25) or (x<25) or (y<25) or (y>self.height-25): #This prevents mouse from getting stuck at the edge of the screen; there are other ways to move the camera if necessary
+            time.sleep(1)
+            win32api.mouse_event(win32con.MOUSEEVENTF_MOVE | win32con.MOUSEEVENTF_ABSOLUTE, int(min(max(26,x),self.width-26)/self.width*65535.0), int(min(max(25,y),self.height-25)/self.height*65535.0)) 
+            win32api.mouse_event(win32con.MOUSEEVENTF_MOVE | win32con.MOUSEEVENTF_ABSOLUTE, int(min(max(25,x),self.width-25)/self.width*65535.0), int(min(max(25,y),self.height-25)/self.height*65535.0))
+            
+    def mousetocoor(self,x,y):
+        xjitter=x-1
+        if x==1: #This tiny correction enables 1,1 to work. It's honestly fine even without it, but I imagine some people will intuitively try to R1,1 to exit a menu, for example
+            xjitter=x+1 
+        win32api.mouse_event(win32con.MOUSEEVENTF_MOVE | win32con.MOUSEEVENTF_ABSOLUTE, int(xjitter/self.width*65535.0), int(y/self.height*65535.0))
+        win32api.mouse_event(win32con.MOUSEEVENTF_MOVE | win32con.MOUSEEVENTF_ABSOLUTE, int(x/self.width*65535.0), int(y/self.height*65535.0))

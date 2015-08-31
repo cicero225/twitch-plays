@@ -35,8 +35,6 @@ class Bot:
         self.game.democracy=self.democracy
         self.demVotes=Queue()
         self.demVoteRatio=50 #50/50 at the start
-        self.endBlockTime=300 #For throttling end turn presses
-        self.prevEndTime=time.time() #For throttling end turn presses
         oscil=True #this is a cheesy way of doing this...
         for x in range(0,self.demVotePool-1): #this is stupid...note that if the pool size is not even, this becomes inaccurate
             self.demVotes.put(oscil,True)
@@ -134,22 +132,10 @@ class Bot:
                                 continue
 
                             throttle_timers[y] = time.time()
-                        #Special coordinate throttle for end turn    #This can be made more generic if necessary
-                        if y.lower().startswith('r') or y.lower().startswith('l') or y.lower().startswith('m'):
-                            nums=y[1:].split(',')
-                            try:  #So very pythonic
-                                nums1=int(nums[0])
-                                nums2=int(nums[1])
-                                if nums1>90 and nums1<160 and nums2>775 and nums2<850:
-                                    if time.time()-self.prevEndTime<self.endBlockTime:
-                                        continue
-                                    self.prevEndTime=time.time()
-                            except:
-                                time.sleep(0.01) #this is just to feel this catch block. It's bad, yes.
                         try: #Just in case of weird edge case
                             self.game.push_button(y)
                         except:
-                            time.sleep(0.01) #this is just to feel this catch block. It's bad, yes.
+                            time.sleep(0.01) #this is just to fill this catch block. It's bad, yes.
                         time.sleep(.05) #Anarchy is a bit more jumpy than Democracy
                     userLength=self.commandDisplayLength-len(button)-2
                     printusername=username
