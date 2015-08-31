@@ -112,7 +112,7 @@ class Game:
                 y=int(words[1])
             except:
                 return False
-            if (x>self.width) or (x<2) or (y<1) or (y>self.height):
+            if (x>self.width) or (x<1) or (y<1) or (y>self.height):
                 return False
             return True
         elif button.lower().startswith('w') and len(button)>1:
@@ -176,10 +176,13 @@ class Game:
             y=int(words[1])
         except:
             return
-        if (x>self.width) or (x<2) or (y<1) or (y>self.height): #2 because of some commands that use x-1 for jitter (otherwise the game won't show move location, etc. properly)
+        xjitter=x-1
+        if x==1: #This tiny correction enables 1,1 to work. It's honestly fine even without it, but I imagine some people will intuitively try to R1,1 to exit a menu, for example
+            xjitter=x+1 
+        if (x>self.width) or (x<1) or (y<1) or (y>self.height):
             return
-        #win32api.SetCursorPos((x,y))
-        win32api.mouse_event(win32con.MOUSEEVENTF_MOVE | win32con.MOUSEEVENTF_ABSOLUTE, int(x-1/self.width*65535.0), int(y/self.height*65535.0))
+        #XCOM requires seeing the mouse move slightly before it will actually show the unit movement cursor, grenade curson, etc.
+        win32api.mouse_event(win32con.MOUSEEVENTF_MOVE | win32con.MOUSEEVENTF_ABSOLUTE, int(xjitter/self.width*65535.0), int(y/self.height*65535.0))
         win32api.mouse_event(win32con.MOUSEEVENTF_MOVE | win32con.MOUSEEVENTF_ABSOLUTE, int(x/self.width*65535.0), int(y/self.height*65535.0))
         time.sleep(.15)
         win32api.mouse_event(win32con.MOUSEEVENTF_RIGHTDOWN,x,y,0,0)
@@ -193,13 +196,16 @@ class Game:
             y=int(words[1])
         except:
             return
-        if (x>self.width) or (x<2) or (y<1) or (y>self.height):
+        xjitter=x-1
+        if x==1: #This tiny correction enables 1,1 to work. It's honestly fine even without it, but I imagine some people will intuitively try to R1,1 to exit a menu, for example
+            xjitter=x+1 
+        if (x>self.width) or (x<1) or (y<1) or (y>self.height):
             return
         # x=x-2464; #correction for monitor location; also coordinates hard-coded because I can't be arsed to try harder than that
-        win32api.mouse_event(win32con.MOUSEEVENTF_MOVE | win32con.MOUSEEVENTF_ABSOLUTE, int(x-1/self.width*65535.0), int(y/self.height*65535.0))
+        win32api.mouse_event(win32con.MOUSEEVENTF_MOVE | win32con.MOUSEEVENTF_ABSOLUTE, int(xjitter/self.width*65535.0), int(y/self.height*65535.0))
         win32api.mouse_event(win32con.MOUSEEVENTF_MOVE | win32con.MOUSEEVENTF_ABSOLUTE, int(x/self.width*65535.0), int(y/self.height*65535.0))
         #win32api.SetCursorPos((x,y))
-        if (x>self.width-100) or (x<100) or (y<100) or (y>self.height-1): #This prevents mouse from getting stuck at the edge of the screen; there are other ways to move the camera is necessary
+        if (x>self.width-100) or (x<100) or (y<100) or (y>self.height-1): #This prevents mouse from getting stuck at the edge of the screen; there are other ways to move the camera if necessary
             time.sleep(1)
             win32api.mouse_event(win32con.MOUSEEVENTF_MOVE | win32con.MOUSEEVENTF_ABSOLUTE, int((0.5-1/self.width)*65535.0), 32767) #middle of screen
             win32api.mouse_event(win32con.MOUSEEVENTF_MOVE | win32con.MOUSEEVENTF_ABSOLUTE, 32767, 32767)
@@ -217,11 +223,13 @@ class Game:
             y=int(words[1])
         except:
             return
-        if (x>self.width) or (x<2) or (y<1) or (y>self.height):
+        xjitter=x-1
+        if x==1: #This tiny correction enables 1,1 to work. It's honestly fine even without it, but I imagine some people will intuitively try to R1,1 to exit a menu, for example
+            xjitter=x+1 
+        if (x>self.width) or (x<1) or (y<1) or (y>self.height):
             return
-        # x=x-2464; #correction for monitor location
-        #win32api.SetCursorPos((x,y))
-        win32api.mouse_event(win32con.MOUSEEVENTF_MOVE | win32con.MOUSEEVENTF_ABSOLUTE, int(x-1/self.width*65535.0), int(y/self.height*65535.0))
+        #XCOM requires seeing the mouse move slightly before it will actually show the unit movement cursor, grenade curson, etc.
+        win32api.mouse_event(win32con.MOUSEEVENTF_MOVE | win32con.MOUSEEVENTF_ABSOLUTE, int(xjitter/self.width*65535.0), int(y/self.height*65535.0))
         win32api.mouse_event(win32con.MOUSEEVENTF_MOVE | win32con.MOUSEEVENTF_ABSOLUTE, int(x/self.width*65535.0), int(y/self.height*65535.0))
         time.sleep(.15)
         win32api.mouse_event(win32con.MOUSEEVENTF_LEFTDOWN,x,y,0,0)
