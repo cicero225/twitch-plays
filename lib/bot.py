@@ -14,8 +14,6 @@ class Bot:
     checkTime=0.1 #Don't check for more commands more frequently than every 0.1s
     voteLength=5 #Number of votes to show
     bufferLength=5 #Number of recent commands to show
-    commandDisplayLength=21 #max number of characters visible on command screen
-    demVotePool=10 #size of Democracy/Anarchy vote pool (keeps last N such votes)
     messageUpdateTime=0.5 #update screen every N seconds
     voteThresh=75 #percentage of votes that must be reached to switch command modes
 
@@ -33,12 +31,8 @@ class Bot:
         self.democracy=True #Anarchy is default on.
         self.curQueue.democracy=self.democracy #Queue also needs this information
         self.game.democracy=self.democracy
-        self.demVotes=Queue()
         self.demVoteRatio=50 #50/50 at the start
-        oscil=True #this is a cheesy way of doing this...
-        for x in range(0,self.demVotePool-1): #this is stupid...note that if the pool size is not even, this becomes inaccurate
-            self.demVotes.put(oscil,True)
-            oscil=not oscil
+        self.demVotePool=10 #Initial Influence of Votes for Anarchy/Democracy Votes - This is not the same as true voting, but is more intuitive for users in the channel. Also easier to implement/deal with.
 
     def update_message_buffer(self, message):
         self.message_buffer.append(message)
@@ -184,13 +178,9 @@ class Bot:
                 
                 #Anarchy/Democracy vote
                 if button=='democracy':
-                    if not self.demVotes.get(True): #If replacing an anarchy vote at the front of the line
-                        self.demVoteRatio=self.demVoteRatio+int(100/self.demVotePool)
-                    self.demVotes.put(True,True)
+                    self.demVoteRatio=min(100,self.demVoteRatio+self.demVotePool) #mmm signed values
                 elif button=='anarchy':
-                    if self.demVotes.get(True): #If replacing a democracy vote at the front of the line
-                        self.demVoteRatio=self.demVoteRatio-int(100/self.demVotePool)
-                    self.demVotes.put(False,True)
+                    self.demVoteRatio=max(0,self.demVoteRatio-self.demVotePool)
                 
                 if not self.game.is_valid_command(button):
                     continue
