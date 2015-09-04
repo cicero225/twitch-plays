@@ -7,6 +7,7 @@ from lib.game import Game
 from lib.comQueue import comQueue
 from os import system
 from queue import *
+import random
 #from lib.misc import pbutton
 
 class Bot:
@@ -14,6 +15,7 @@ class Bot:
     checkTime=0.1 #Don't check for more commands more frequently than every 0.1s
     voteLength=5 #Number of votes to show
     bufferLength=5 #Number of recent commands to show
+    commandDisplayLength=21 #max number of characters visible on command screen
     messageUpdateTime=0.5 #update screen every N seconds
     voteThresh=75 #percentage of votes that must be reached to switch command modes
 
@@ -42,7 +44,7 @@ class Bot:
     def update_message(self,timeleft):
         system('cls')
         if self.democracy:
-            votes=self.sortVote()
+            votes=self.sortVote() #It's inefficient to do this every time, yes, but the alternative is to implement a custom sorted value hashmap, and I hope that's not necessary...
             print ('\n\n')
             print ('Democracy: '+str(int(self.demVoteRatio))+'%\nAnarchy: '+str(100-int(self.demVoteRatio))+'%\n\nDemocracy!\nTime Remaining: '+str(int(timeleft))+' s\nLast Pushed: '+self.lastPushed+'\n')
             if votes:
@@ -90,21 +92,19 @@ class Bot:
                             printusername=username[0:userLength-3]+'...'
                         self.update_message_buffer(printusername+': '+button)
                         #pbutton(self.message_buffer)
-                    #TODO: Print a count of votes somewhere (but not too frequently, because it requires sorting to display and I'm not implementing a custom sorted-value hashmap >_<)
                     if time.time()-timetaken<self.checkTime: #don't check more frequently than once every 0.1
                         self.queueStatus="Sleeping"
                         time.sleep(self.checkTime)
                 self.queueStatus="Running Command"
-                votes=self.sortVote() #running the command after voteTime seconds
-                if votes:
-                    #print("Pressing "+votes[0][0])
-                    self.lastPushed=votes[0][0]
-                    words=votes[0][0].split("+") #input-time check should have already made sure it's a valid command
+                vote=self.topVote() #running the command after voteTime seconds
+                if vote:
+                    self.lastPushed=vote
+                    words=vote.split("+") #input-time check should have already made sure it's a valid command
                     for y in words:
                         try:
                             self.game.push_button(y)
                         except:
-                            time.sleep(0.01) #this is just to feel this catch block. It's bad, yes.
+                            time.sleep(0.01) #this is just to fill this catch block. It's bad, yes.
                         time.sleep(.15)
                     self.clearVote()
                 self.update_message(0)
@@ -145,6 +145,10 @@ class Bot:
             self.voteCount[vote]=self.voteCount[vote]+1
         else:
             self.voteCount[vote]=1
+            
+    def topVote(self): #Gets top vote, applying rng to choose among ties
+        top=[k for k,v in self.voteItems if v == max(self.voteCount.values())]
+        return random.choice(top)
             
     def sortVote(self):
         sortedItems=sorted(self.voteItems,key=lambda tup: tup[1], reverse=True) #sort using the values, biggest to smallest
