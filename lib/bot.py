@@ -148,6 +148,8 @@ class Bot:
             
     def topVote(self): #Gets top vote, applying rng to choose among ties
         top=[k for k,v in self.voteItems if v == max(self.voteCount.values())]
+        if not top:
+            return None
         return random.choice(top)
             
     def sortVote(self):
