@@ -8,21 +8,20 @@ from lib.comQueue import comQueue
 from os import system
 from queue import *
 import random
+import configparser
 #from lib.misc import pbutton
 
 class Bot:
-    voteTime=20 #Length of vote time
-    checkTime=0.1 #Don't check for more commands more frequently than every 0.1s
     voteLength=5 #Number of votes to show
     bufferLength=5 #Number of recent commands to show
     commandDisplayLength=21 #max number of characters visible on command screen
-    messageUpdateTime=0.5 #update screen every N seconds
-    voteThresh=75 #percentage of votes that must be reached to switch command modes
 
     def __init__(self):
         self.config = config
         self.irc = Irc(config)
         self.game = Game()
+        self.extConfig=configparser.ConfigParser()
+        self.readConfigText() #read in config file
         self.message_buffer = []
         self.curQueue=comQueue()
         self.queueStatus="Nominal"
@@ -34,7 +33,21 @@ class Bot:
         self.curQueue.democracy=self.democracy #Queue also needs this information
         self.game.democracy=self.democracy
         self.demVoteRatio=50 #50/50 at the start
-        self.demVotePool=10 #Initial Influence of Votes for Anarchy/Democracy Votes - This is not the same as true voting, but is more intuitive for users in the channel. Also easier to implement/deal with.
+        self.lastConfigTime=time.time() #Timer on config file updates
+        self.configUpdateFreq=60 #config file updates every 60 seconds
+        
+    def readConfigText(self):
+        self.extConfig.read(self.config['configPath'])
+        self.game.keymap=dict(self.extConfig['Keymap'])
+        for sub in self.game.keymap.keys():
+            self.game.keymap[sub] = int(self.game.keymap[sub],16) #convert from the hex to integer
+        self.game.macros=dict(self.extConfig['Macros'])
+        self.botConfig=dict(self.extConfig['Bot'])
+        for sub in self.botConfig.keys():
+            self.botConfig[sub] = float(self.botConfig[sub])
+        self.game.gameConfig=dict(self.extConfig['Game'])
+        for sub in self.game.gameConfig.keys():
+            self.game.gameConfig[sub] = float(self.game.gameConfig[sub])
 
     def update_message_buffer(self, message):
         self.message_buffer.append(message)
@@ -62,20 +75,24 @@ class Bot:
     
     def commandQueue(self):    
         while True:
+            #update config file if necessary...hopefully this doesn't cause threading issues with the other thread
+            if time.time()-self.lastConfigTime>self.configUpdateFreq:
+                self.readConfigText()
+                self.lastConfigTime=time.time()
             #Toggles Anarchy/Democracy state
-            if self.democracy and self.demVoteRatio<100-self.voteThresh:
+            if self.democracy and self.demVoteRatio<100-self.botConfig['votethresh']:
                 self.democracy=False
                 self.curQueue.democracy=False
                 self.game.democracy=False
-            elif not self.democracy and self.demVoteRatio>self.voteThresh:
+            elif not self.democracy and self.demVoteRatio>self.botConfig['votethresh']:
                 self.democracy=True
                 self.curQueue.democracy=True
                 self.game.democracy=True
             if self.democracy: #this is Democracy
                 lastvotetime=time.time()
                 self.queueStatus="Adding Votes"
-                while time.time()-lastvotetime<self.voteTime: #collect commands for voteTime seconds
-                    self.update_message(self.voteTime-time.time()+lastvotetime)
+                while time.time()-lastvotetime<self.botConfig['votetime']: #collect commands for votetime seconds
+                    self.update_message(self.botConfig['votetime']-time.time()+lastvotetime)
                     comList,userList=self.curQueue.getCom()
                     self.lastButton=comList
                     timetaken=time.time()
@@ -92,11 +109,11 @@ class Bot:
                             printusername=username[0:userLength-3]+'...'
                         self.update_message_buffer(printusername+': '+button)
                         #pbutton(self.message_buffer)
-                    if time.time()-timetaken<self.checkTime: #don't check more frequently than once every 0.1
+                    if time.time()-timetaken<self.botConfig['checktime']: #don't check more frequently than once every 0.1
                         self.queueStatus="Sleeping"
-                        time.sleep(self.checkTime)
+                        time.sleep(self.botConfig['checktime'])
                 self.queueStatus="Running Command"
-                vote=self.topVote() #running the command after voteTime seconds
+                vote=self.topVote() #running the command after votetime seconds
                 if vote:
                     self.lastPushed=vote
                     words=vote.split("+") #input-time check should have already made sure it's a valid command
@@ -136,9 +153,9 @@ class Bot:
                     if len(username)>userLength:
                         printusername=username[0:userLength-3]+'...'
                     self.update_message_buffer(printusername+': '+button)
-                if time.time()-timetaken<self.checkTime: #don't check more frequently than once every 0.1
+                if time.time()-timetaken<self.botConfig['checktime']: #don't check more frequently than once every 0.1
                     self.queueStatus="Sleeping"
-                    time.sleep(self.checkTime)
+                    time.sleep(self.botConfig['checktime'])
                     
     def addVote(self,vote):
         if vote in self.voteCount:
@@ -184,9 +201,9 @@ class Bot:
                 
                 #Anarchy/Democracy vote
                 if button=='democracy':
-                    self.demVoteRatio=min(100,self.demVoteRatio+self.demVotePool) #mmm signed values
+                    self.demVoteRatio=min(100,self.demVoteRatio+self.botConfig['demvotepool']) #mmm signed values
                 elif button=='anarchy':
-                    self.demVoteRatio=max(0,self.demVoteRatio-self.demVotePool)
+                    self.demVoteRatio=max(0,self.demVoteRatio-self.botConfig['demvotepool'])
                 
                 if not self.game.is_valid_command(button):
                     continue

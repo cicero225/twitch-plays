@@ -17,5 +17,7 @@ config = {
     'misc': {
         'chat_height': 13
     }
+    
+    'configPath':'configFilePath'
 
 }
