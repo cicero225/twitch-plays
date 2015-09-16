@@ -1,43 +1,41 @@
 import time
 from queue import *
 
+#One of the purposes of this class is to guard against command "traffic jams" as much as possible. It achieves this by only calling Queue.get() and put() with a 1 second timeout and properly handling timeout. This may occasionally drop commands under extreme load conditions, but guards against some kind of unforeseen infinite block contingency (and 1 second is a really long time to wait). It also drops commands that are too old.
+
+#Threadsafeness: Achieved (for now) by the fact that the only function that more than a one-line call to a Queue method (Queue is guaranteed threadsafe by python) is getCom.
+
 class comQueue:
-    lag=0 #Additional time to lag commands, if desired
     dropTime=10 #Time in seconds stacked up commands will be kept before being dropped, in anarchy
     
     def __init__(self):
         self.thisqueue=Queue() 
         self.status=""
-        self.democracy=True #Democracy is default on. If False, will be Anarchy. It is the responsibility of lib.bot to keep this updated
         
     def getCom(self):
         comList=[]
         userList=[]
-        notComList=[]
         curtime=time.time()
         while not self.thisqueue.empty():
-            curCom=self.thisqueue.get(True,1)
+            try:
+                curCom=self.thisqueue.get(True,1) #gives up if blocked for 1 second
+            except Empty:
+                break
             try:
                 self.status=curCom[1]
-                if self.democracy:
+                if curCom[1]>curtime-self.dropTime: #ensures commands get dropped if they're *really* piling up
                     comList.append(curCom[0])
                     userList.append(curCom[2])
-                elif curCom[1]>curtime-self.lag-self.dropTime: #ensures commands get dropped if they're *really* piling up
-                    if curCom[1]<curtime-self.lag:
-                        comList.append(curCom[0])
-                        userList.append(curCom[2])
-                    else:
-                        notComList.append(curCom)
-            except TypeError:
+            except: #This is one of those Bad try/excepts, that are only there to keep the code running in case of something unanticipated. Note, though, that in principle whatever triggers the error should not recur and infinite loop - the .get() at the beginning of the while loop should either have removed the entry or have already broken the loop
                 continue
 
-        if not self.democracy:
-            for curCom in notComList:
-                self.thisqueue.put(curCom)
         return comList,userList
         
     def addCom(self,com):
-        self.thisqueue.put([com[0], time.time(),com[1]],True,1) #gives up if blocked for 1 second
+        try:
+            self.thisqueue.put([com[0], time.time(),com[1]],True,1) #gives up if blocked for 1 second
+        except Full:
+            return
         #print(self.thisqueue.qsize())
         
     def getStatus(self):

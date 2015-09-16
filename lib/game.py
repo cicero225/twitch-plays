@@ -4,6 +4,10 @@ import time
 from win32api import GetSystemMetrics
 from win32con import *
 
+#The try/except blocks here are used judiciously; failed input processing of a specific sort is diverted into a return, which should have no effect on anything else.
+
+#Threadsafeness: Because an instance of this object is shared by both threads in bot.py, this class is kept threadsafe by the expedient of NEVER changing any of its attributes in the methods (outside of init) with the current SOLE (unfortunate) EXCEPTION of self.prevEndTime, which is handled (and rarely modified) quickly in is_valid_button with atomic operations. By its very design it is nearly impossible for the modifications to happen closer than 5 minutes apart, and even if this somehow happens in two different threads, overwriting one timestamp with another timestamp milliseconds later is irrelevant. Even so, is_valid_command and is_valid_button are only called by the IRC thread in bot.py, and should not be called by the other thread if it can be avoided.
+
 class Game:
     democracy=True #It is reponsibility of lib.bot to set this correctly
     #width=GetSystemMetrics(0)
@@ -35,13 +39,13 @@ class Game:
             try:  #So very pythonic
                 x=int(words[0])
                 y=int(words[1])
-                #Special coordinate throttle for end turn    #This can be made more generic if necessary
-                if x>90 and x<160 and y>775 and y<850:
-                    if time.time()-self.prevEndTime<self.gameConfig['endblocktime']:
-                        return False
-                    self.prevEndTime=time.time()
             except:
                 return False
+            #Special coordinate throttle for end turn    #This can be made more generic if necessary
+            if x>90 and x<160 and y>775 and y<850:
+                if time.time()-self.prevEndTime<self.gameConfig['endblocktime']:
+                    return False
+                self.prevEndTime=time.time()
             if (x>self.width) or (x<1) or (y<1) or (y>self.height):
                 return False
             return True
