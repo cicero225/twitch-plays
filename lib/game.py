@@ -208,7 +208,7 @@ class Game:
         if button in self.macros.keys(): #convert macro to something else
             button=self.macros[button]
             if '+' in button:
-                buttons=button.split(" ") #this enables macros to loophole the one command limit
+                buttons=button.split("+") #this enables macros to loophole the one command limit
                 for x in buttons:
                     self.push_button(x)#yay minor recursion
                 return
