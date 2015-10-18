@@ -207,6 +207,11 @@ class Game:
         #print(button)
         if button in self.macros.keys(): #convert macro to something else
             button=self.macros[button]
+            if '+' in button:
+                buttons=button.split(" ") #this enables macros to loophole the one command limit
+                for x in buttons:
+                    self.push_button(x)#yay minor recursion
+                return
         if button in self.keymap.keys():
             win32api.keybd_event(self.button_to_key(button), 0, 0, 0)
             time.sleep(.15)
@@ -326,7 +331,9 @@ class Game:
             
     def mousetocoor(self,x,y):
         xjitter=x-1
-        if x==1: #This tiny correction enables 1,1 to work. It's honestly fine even without it, but I imagine some people will intuitively try to R1,1 to exit a menu, for example
+        if x==0:
+            x=1
+        if x==1: #This tiny correction enables 1,1 and 0,0 to work. It's honestly fine even without it, but people love trying these
             xjitter=x+1 
         win32api.mouse_event(win32con.MOUSEEVENTF_MOVE | win32con.MOUSEEVENTF_ABSOLUTE, int(xjitter/self.width*65535.0), int(y/self.height*65535.0))
         win32api.mouse_event(win32con.MOUSEEVENTF_MOVE | win32con.MOUSEEVENTF_ABSOLUTE, int(x/self.width*65535.0), int(y/self.height*65535.0))
